@@ -1,0 +1,59 @@
+<html>
+	<head>
+		<title>Al's website test</title>
+		<script text="text/javascript" >
+			function checkUploadSpeed( iterations, update ) {
+					var average = 0,
+						index = 0,
+						timer = window.setInterval( check, 6000 ); //check every 5 seconds
+					check();
+					var total
+					function check() {
+						var xhr = new XMLHttpRequest(),
+							url = 'uploadreceiver.php?cache=' + Math.floor( Math.random() * 10000 ), //prevent url cache
+							data = getRandomString( 1 ), //1 meg POST size handled by all servers
+							startTime,
+							speed = 0;
+						xhr.onreadystatechange = function ( event ) {
+							if( xhr.readyState == 4 ) {
+								speed = Math.round( 1024 / ( ( new Date() - startTime ) / 1000 ) );
+								average == 0 
+									? average = speed 
+									: average = Math.round( ( average + speed ) / 2 );
+								update( speed, average );
+								index++;
+								if( index == iterations ) {
+									window.clearInterval( timer );
+								};
+							};
+						};
+						xhr.open( 'POST', url, true );
+						startTime = new Date();
+						xhr.send( data );
+					};
+					
+					function getRandomString( sizeInMb ) {
+						var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()_+`-=[]\{}|;':,./<>?", //random data prevents gzip effect
+							iterations = sizeInMb * 1024 * 1024, //get byte count
+							result = '';
+						for( var index = 0; index < iterations; index++ ) {
+							result += chars.charAt( Math.floor( Math.random() * chars.length ) );
+						};     
+						return result;
+					};
+				};
+
+				checkUploadSpeed( 1, function ( speed, average ) {
+					document.getElementById( 'speed' ).textContent = 'speed: ' + speed + 'kbs';
+					document.getElementById( 'average' ).textContent = 'average: ' + average + 'kbs';
+				} );
+		</script>
+	
+	</head>
+	<body>
+		<div>
+			<p id="speed"></p>
+			<p id="average"></p>
+		</div>
+	</body>
+</html>

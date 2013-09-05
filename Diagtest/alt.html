@@ -1,0 +1,1003 @@
+
+<!DOCTYPE html>
+	<html>
+	<head>
+		<title>Compatibility Diagnostic Tool Backup</title>
+		<link rel="stylesheet" type="text/css" href="diag.css">
+		<!--<script type="text/JavaScript" src="prototype.js"></script> -->
+		<script type="text/JavaScript" src="/scripts/swfobject.js"></script>
+		<script src="http://code.jquery.com/jquery-1.9.1.js" type="text/JavaScript">
+			
+		$(document).ready(function(){
+				$('.slideToggler2').click(function(){
+					$('.slideContent2').slideToggle('slow');
+					$(this).toggleClass('slideSign2');
+					return false;
+				});
+				$('.collaps2').click(function(){
+					$('.slideContent2').slideToggle('slow');
+					$('.slideToggler2').toggleClass('slideSign2');
+					return false;
+				});
+			});
+		
+		</script>
+		<script type="text/Javascript">
+			
+			//setup global variables for post_to_server()
+			var bandwidthdlspeed = 0;
+			var bandwidthulspeed = 0;
+			var os;
+			var browser;
+			var flashVersion;
+			var popupstate;
+			var dotNetversionsPresent = new Array();
+			var cookiesEnabled;
+			
+			//arrays for later use are populated with database calls
+			
+			//for ostest()
+			var userAgentValues = new Array();
+			var operatingSystems = new Array();
+			//for isOSCompatible()
+			var compatibleOS = new Array();
+			
+			//for bandwidththresholds
+			var speedThresholdNo = new Array();
+			var downloadFileName = new Array();
+			var downloadFileSize = new Array();
+			
+			//for bandwidth display table
+			var speedThresholdName = new Array();
+			var speedThresholds = new Array();
+			var sampleScenario = new Array();
+			
+			//for dotnet compatibility 
+			var compatibleDotNetVersions = new Array();
+			
+			var complete = false;
+			var bandwidthTestComplete = false;
+		
+		
+			//this will run at the end of all the db calls
+			/*
+			{
+				browser = browsertest();
+				var currentOS = determineOS(userAgentValues, operatingSystems);
+				isOSCompatible(browser,currentOS);
+				
+			} */
+			function initialtests(){
+				$("#loading").fadeToggle("fast", function () {
+						  });
+				fillOsArrays();
+				database_retrieval_complete();
+			}
+			
+			function fillOsArrays(){
+				if(window.XMLHttpRequest){
+					xmlhttp = new XMLHttpRequest();
+				}
+				xmlhttp.onreadystatechange=function(){
+					if(xmlhttp.readyState==4 && xmlhttp.status==200){//data received
+						
+						//Setup arrays for returning server data
+						var osResults;
+						//var userAgentValues = new Array();
+						//var operatingSystems = new Array();
+						var rowResultArray = new Array();
+						
+						//returning message response from server
+						var osResults = xmlhttp.responseText;
+						var arrayOfRows = osResults.split("#");
+						
+						//Use loop to fill the arrays from Database
+						for(var i = 0; i< arrayOfRows.length - 1; i++){
+							rowResultArray = arrayOfRows[i].split("/");
+							userAgentValues[i] = rowResultArray[0];
+							operatingSystems[i] = rowResultArray[1];
+						}
+						//flashVersion = adobetest(determineOS(userAgentValues, operatingSystems));//update global variable adobe version as it is dependant on ostest
+						
+						//post_to_server();
+						fillCompatibleOSArrays();
+					}
+				} 
+				xmlhttp.open("POST","retrieve_os.php", true);
+				xmlhttp.send();
+			}
+			
+			function fillCompatibleOSArrays(){
+				if(window.XMLHttpRequest){
+					xmlhttp = new XMLHttpRequest();
+				}
+				xmlhttp.onreadystatechange=function(){
+						if(xmlhttp.readyState==4 && xmlhttp.status==200){//data received
+							
+							//Setup arrays for returning server data
+							var osResults;
+							
+							var rowResultArray = new Array();
+							
+							//returning message response from server
+							var osResults = xmlhttp.responseText;
+							var arrayOfRows = osResults.split("#");
+							
+							//Use loop to fill the arrays from Database
+							for(var i = 0; i< arrayOfRows.length - 1; i++){
+								compatibleOS[i] = arrayOfRows[i];
+							}
+							//call function to test
+							
+							fillBandwidthThresholdArrays();
+						}
+					} 
+					xmlhttp.open("POST","retrieve_compatible_os.php", true);
+					xmlhttp.send();
+			}
+			
+			function fillBandwidthThresholdArrays(){
+				if(window.XMLHttpRequest){
+					xmlhttpDl = new XMLHttpRequest();
+				}
+				xmlhttpDl.onreadystatechange=function(){
+					if(xmlhttpDl.readyState==4 && xmlhttpDl.status==200){//data received
+						//Setup arrays for returning server data
+						var bandwidthThresholdResults = new Array();
+						var rowResultArray = new Array();
+						
+				
+						var bandwidthThresholdResults = xmlhttpDl.responseText;
+						var arrayOfRows = bandwidthThresholdResults.split("#");
+						//Use loop to fill the arrays from Database
+						for(var i = 0; i< arrayOfRows.length - 1; i++){
+							rowResultArray = arrayOfRows[i].split("|");
+							speedThresholdNo[i] = parseInt(rowResultArray[0]);
+							downloadFileName[i] = rowResultArray[1];
+							downloadFileSize[i] = parseInt(rowResultArray[2]);
+							
+						}
+						//initialDownloadTest(speedThresholdNo, downloadFileName, downloadFileSize);
+						fillDisplayTableArrays();
+					}
+					
+				} 
+				xmlhttpDl.open("POST","retrieve_bandwidth_thresholds.php", true);
+				xmlhttpDl.send();
+			}
+			
+			function fillDisplayTableArrays(){
+				if(window.XMLHttpRequest){
+					xmlhttp = new XMLHttpRequest();
+				}
+				xmlhttp.onreadystatechange=function(){
+					if(xmlhttp.readyState==4 && xmlhttp.status==200){//data received
+						//Setup arrays for returning server data
+						var bandwidthResults = new Array();
+						var rowResultArray = new Array();
+						
+					
+						var bandwidthResults = xmlhttp.responseText;
+						var arrayOfRows = bandwidthResults.split("/");
+						
+						//Use loop to fill the arrays from Database
+						for(var i = 0; i< arrayOfRows.length - 1; i++){
+							rowResultArray = arrayOfRows[i].split("|");
+							speedThresholdName[i] = rowResultArray[0];
+							speedThresholds[i] = parseInt(rowResultArray[1]);
+							sampleScenario[i] = rowResultArray[2];
+						}
+						fillCompatibleDotNetArray();
+					}
+					
+				} 
+				xmlhttp.open("POST","retrieve_bandwidth.php", true);
+				xmlhttp.send();
+			}
+			
+			function fillCompatibleDotNetArray(){
+				if(window.XMLHttpRequest){
+					xmlhttpDotNet = new XMLHttpRequest();
+				}
+				xmlhttpDotNet.onreadystatechange=function(){
+					if(xmlhttpDotNet.readyState==4 && xmlhttpDotNet.status==200){//data received
+								
+						//Setup arrays for returning server data
+						//var compatibleVersions = new Array();
+						var rowResultArray = new Array();
+						
+						var dotnetResponse = xmlhttpDotNet.responseText;
+						var arrayOfRows = dotnetResponse.split('#');
+						
+						//var arrayOfRows = bandwidthThresholdResults.split("#");
+						//Use loop to fill the arrays from Database
+						for(var i = 0; i< arrayOfRows.length - 1; i++){
+							compatibleDotNetVersions[i] = arrayOfRows[i];
+							
+						}
+						//hasCompatibleVersions(compatibleDotNetVersions);
+						complete = true;//positioning this line is crucial to correct completion of code
+						//return compatibleDotNetVersions;
+					}	
+				} 
+				xmlhttpDotNet.open("POST","retrieve_compatible_dotnet.php", true);
+				xmlhttpDotNet.send();
+			}
+			
+			
+			
+			
+			
+			function database_retrieval_complete(){
+				if(!complete){
+						console.log("Database retrieval: Not complete yet.");
+						window.setTimeout("database_retrieval_complete();", 2000);
+						return;
+				}else{//this will only execute if all required fields are filled
+					/*console.log(userAgentValues);
+					console.log(operatingSystems);
+					console.log(compatibleOS);
+					console.log(speedThresholdNo);
+					console.log(downloadFileName);
+					console.log(downloadFileSize);
+					console.log(speedThresholdName);
+					console.log(speedThresholds);
+					console.log(sampleScenario);
+					console.log(compatibleDotNetVersions); */
+					
+					browser = browsertest();
+					console.log(browser);
+					os = determineOS()
+					console.log(os);
+					javascripttest();
+					cookietest();
+					adobetest()
+					console.log(flashVersion);
+					popupstate = popuptest();
+					dotnettest();
+					//console.log(dotNetVersion);
+					downloadingtest();
+					post_to_server();
+				}
+			}
+			
+			function browsertest(){
+				
+				var browser = {
+					chrome: false,
+					mozilla: false,
+					opera: false,
+					msie: false,
+					safari: false
+				};
+				validBrowser = false;
+				var patt = "";
+				var browserAndVersion;
+				var sBrowser, sUsrAg = navigator.userAgent;
+				if(sUsrAg.indexOf("Chrome") > -1) {
+					patt = /Chrome\/(.*) / 
+					var browserversion = patt.exec(sUsrAg);
+					browserAndVersion = browserversion[0];//browserversion[0] returns type and version number of browser - this sent to Db
+					var versionNo = browserversion[1].split("."); //browserversion[1] returns only the version number instead of browser type too
+					if(versionNo[0] >= 16){ 
+						//Chrome version is at least version 16
+						//document.getElementById("browser").innerHTML = "<p>Browser tick</p>";
+						validBrowser = true;
+					}else{ 
+						// newer version of chrome required 
+						document.getElementById("browsererror").innerHTML = "<p>You need to update Chrome to at least 16. You have "+browserversion[1]+". You can do so at <a target='_blank' href='https://support.google.com/chrome/answer/95414?hl=en'>support.google.com</a></p>";
+					}
+				} else if (sUsrAg.indexOf("Safari") > -1) {
+					patt = /Version\/(\d{1,2})\.(\d{1,2})/ 
+					var browserversion = patt.exec(sUsrAg);
+					browserAndVersion = browserversion[0];// sent to Db
+					var versionNo = browserversion[0].split("/");
+					if(versionNo[1] >= 5.0){ 
+						//Safari is at least version 5
+						//document.getElementById("browser").innerHTML = "<p>Browser tick</p>";
+						validBrowser = true;
+					}else{
+						//newer version of Safari required
+						document.getElementById("browsererror").innerHTML = "<p>You need to update Safari to at least 5. You have "+versionNo[1]+". You can do so at <a target='_blank' href='http://www.apple.com/support/safari/'>apple.com/support</a></p>";
+					}
+					
+				} else if (sUsrAg.indexOf("Opera") > -1) {
+					patt = /Version\/(\d{1,2})\.(\d{1,2})/   //Safari\/(.*)/ 
+				} else if (sUsrAg.indexOf("Firefox") > -1) {
+					patt = /Firefox\/(\d{1,2})(\.)(\d{1,2})/
+					var browserversion = patt.exec(sUsrAg);
+					browserAndVersion = browserversion[0];//sent to Db
+					var versionNo = browserversion[0].split("/");//Extract 21.0 from Firefox/21.0 for condition
+					//alert(versionNo[1]);
+					if(versionNo[1] >= 3.6){ 
+						//Firefox is at least version 3.6
+						//document.getElementById("browser").innerHTML = "<p>Browser tick</p>";
+						//document.getElementById("browser").innerHTML = "<p>You need to update Firefox to at least 3.6. You have "+versionNo[1]+". You can do so at <a target='_blank' href='http://www.mozilla.org/en-US/firefox/update/'>www.mozilla.org</a></p>";
+						validBrowser = true;
+					}else{ 
+						// newer version of Firefox required
+						document.getElementById("browsererror").innerHTML = "<p>You need to update Firefox to at least 3.6. You have "+versionNo[1]+". You can do so at <a target='_blank' href='http://www.mozilla.org/en-US/firefox/update/'>www.mozilla.org</a></p>";
+					}
+					
+				} else if (sUsrAg.indexOf("MSIE") > -1) {
+					patt = /MSIE (\d{1,2})\.(\d{1,2})/
+					var browserversion = patt.exec(sUsrAg);
+					browserAndVersion = browserversion[0];//sent to Db
+					var versionNo = browserAndVersion.split(" ");
+					if(versionNo[1] >= 7){
+						//Internet Explorer is at least 7
+						//document.getElementById("browser").innerHTML = "<p>Browser tick</p>";
+						validBrowser = true;
+						//document.getElementById("browser").innerHTML = "<p>You need to update Internet Explorer to at least 7. You have "+versionNo[1]+". You can do so at <a target='_blank' href='http://www.microsoft.com/en-ie/download/ie.aspx?q=internet+explorer'>www.microsoft.com</a></p>";
+					}else{
+						//newer version of Internet Explorer is required
+						document.getElementById("browsererror").innerHTML = "<p>You need to update Internet Explorer to at least 7. You have "+versionNo[1]+". You can do so at <a target='_blank' href='http://www.microsoft.com/en-ie/download/ie.aspx?q=internet+explorer'>www.microsoft.com</a></p>";
+					}
+				} 
+				//alert(navigator.userAgent);
+				if(validBrowser){
+					document.getElementById("browser").innerHTML = "<img src='validtick.png'>";
+				}
+				return browserAndVersion;
+			}
+			
+			function determineOS(){
+				osfound:
+				for(var i = 0;i<=18;i++){ 
+					if(userAgentValues[i].indexOf("|") != -1){ //multiple userAgentValues for a single operating system 
+						var subarrayofuseragent = userAgentValues[i].split("|");//Split the userAgents into separate values
+						//alert(subarrayofuseragent);
+						for(var j = 0;j< subarrayofuseragent.length ; j++){ //loop through sub userAgents
+							if(navigator.userAgent.indexOf(subarrayofuseragent[j]) != -1){//then correct userAgent
+								//document.getElementById("os").innerHTML = "<p>" + operatingsystems[i] + "</p>"; //update div id="os"
+								os = operatingSystems[i];
+								break osfound;
+							} 
+						}
+					}else{
+						if(navigator.userAgent.indexOf(userAgentValues[i]) != -1){//then it is the correct userAgent
+							//document.getElementById("os").innerHTML = "<p>" + operatingsystems[i] + "</p>"; //update div id="os"
+							os = operatingSystems[i];
+							break osfound;
+						} 
+					} 
+				}
+				isOSCompatible(os);//update main table with data
+				return os;
+			}
+				
+			function isOSCompatible(os){
+						var validGlobalMeetOS = false;
+						var validToolbarOS = false;
+						var validDesktopOS = false;
+						
+						//call function to test
+						if(compatibleOS.indexOf(os) != -1 ){
+							validGlobalMeetOS = true;
+							validToolbarOS = true;
+							if(os = 'Windows 7'){
+								validDesktopOS = true;
+							}
+						}
+						if(os == "Mac OS"){
+							var patt = "";
+							var sUsrAg = navigator.userAgent;
+							if(browser.indexOf("Version") != -1 || browser.indexOf("Chrome") != -1){//if browser is safari or chrome (same useragent format)
+								//alert(navigator.userAgent+" useragent in safari/chrome");
+								patt = /Intel Mac OS X (\d+)_(\d+)_(\d+)/
+								var osversion = patt.exec(sUsrAg);
+								 os = "<p>Mac OS X " + osversion[1]+"."+ osversion[2]+"."+osversion[3] + "</p>";
+								if(osversion[1]== 10 && osversion[2] >= 5){
+									validGlobalMeetOS =true;
+									if(osversion[2] >= 6){
+										validDesktopOS = true;
+									}
+								}
+							}else if(browser.indexOf("Firefox") != -1){ // browser is firefox
+								//alert(navigator.userAgent+" useragent in firefox");
+								
+								patt = /Intel Mac OS X (\d+)\.(\d+)/
+								var osversion = patt.exec(sUsrAg);
+								os = "<p>Mac OS X " + osversion[1]+"."+ osversion[2];
+								if(osversion[1]== 10 && osversion[2] >= 5){
+									validGlobalMeetOS =true;
+									if(osversion[2] >= 6){
+										validDesktopOS = true;
+									}
+								}  
+							}else{ //incompatible browser (Internet Explorer is no longer supported in Mac OS)
+							
+							}
+							document.getElementById("validToolbarOS").innerHTML = "Toolbar not available for Mac OS"
+						}
+						if(validGlobalMeetOS){
+							document.getElementById("validGlobalMeetOS").innerHTML = "<img src='validtick.png'>";
+						}else{//have an else to explain why they didn't pass
+							if(os.indexOf("Mac OS")){
+								document.getElementById("oserror").innerHTML = "You require a newer version of Mac OS";
+							}else if(os.indexOf("Windows")){
+								for(var i= 0;i <compatibleOS.length;i++){
+									if(i!=0){
+										versions += "," + compatibleOS[i];
+									}else{
+										var versions = compatibleOS[i];
+									}
+								}
+							
+								document.getElementById("oserror").innerHTML = "You require a newer version of Windows "+ versions;
+							}
+						}
+						
+						if(validToolbarOS){
+							document.getElementById("validToolbarOS").innerHTML = "<img src='validtick.png'>";
+						}//have an else to explain why they didn't pass
+						if(validDesktopOS){
+							document.getElementById("validDesktopOS").innerHTML = "<img src='validtick.png'>";
+						}
+					
+				return os;	
+			}
+			
+			function javascripttest(){
+				document.getElementById("other").innerHTML = "Javascript Enabled";
+				
+			}
+			
+			function cookietest(){
+				if(navigator.cookieEnabled){
+					document.getElementById("other").innerHTML += "<br>Cookies Enabled";
+					cookiesEnabled = "Enabled";
+					return "enabled";
+				}else{
+					document.getElementById("other").innerHTML += "<br>Cookies Disabled";
+					cookiesEnabled = "Disabled";
+					document.getElementById("cookieerror").innerHTML += "Cookies Disabled: Change settings here for <a target='_blank' href='http://support.apple.com/kb/index?page=search&q=cookies%20safari'>Safari</a> <a target='_blank' href='http://windows.microsoft.com/en-IE/windows-vista/block-or-allow-cookies'>Internet Explorer</a> <a target='_blank' href='https://support.google.com/accounts/answer/61416?hl=en'>Chrome</a> <a target='_blank' href='https://support.mozilla.org/en-US/kb/enable-and-disable-cookies-website-preferences'>Firefox</a>";
+					return "disabled";
+				}
+			}
+			
+			function adobetest(){
+				
+				if(os.indexOf("Windows") != -1){//is a windows os
+					if(swfobject.hasFlashPlayerVersion("10")){//ten is acceptable but 10.3 recommended for "call my computer"
+						document.getElementById("globalmeetflash").innerHTML = "<p>You have the minimum required version of Flash. However 10.3 is recommended for Call My Computer</p>";
+						if(swfobject.hasFlashPlayerVersion("10.3")){
+							document.getElementById("globalmeetflash").innerHTML = "<img src='validtick.png'>";
+						}
+						if(swfobject.hasFlashPlayerVersion("11")){
+							document.getElementById("toolbarflash").innerHTML = "<img src='validtick.png'>";
+						}else{
+							//say that for toolbar 11 or higher is recommended
+							document.getElementById("toolbarflash").innerHTML = "Minimum Specification met. Version 11 or higher recommended.";
+						}
+					}else{
+						document.getElementById("flasherror").innerHTML += "<p>Please update to at least 10 for Windows. You can do so at <a target='_blank'href='http://www.adobe.com/software/flash/about/'>www.adobe.com</a></p>";  
+					}
+				}else if(os.indexOf("Mac OS") != -1){ //is a mac os test currently doesn't work only need to go this far for mac os x 10.7
+					//test if version of mac is >= 10.7
+					var osversion = os.split(" ");
+					var versionnumber = osversion[(osversion.length) -1].split(".");
+					if(versionnumber[0] == 10 && versionnumber[1] >= 7){
+						if(swfobject.hasFlashPlayerVersion("10.3.183.5")){
+							document.getElementById("globalmeetflash").innerHTML = "<img src='validtick.png'>";
+						}else{
+							document.getElementById("flasherror").innerHTML += "<p>Please update to at least 10.3.183.5 for Mac OS X 10.7. You can do so at <a target='_blank'href='http://www.adobe.com/software/flash/about/'>www.adobe.com</a></p>";  
+						}
+					}else{
+						if(swfobject.hasFlashPlayerVersion("10")){//ten is acceptable but 10.3 recommended for "call my computer"
+							document.getElementById("globalmeetflash").innerHTML = "<p>You have the minimum required version of Flash. However 10.3 is recommended for Call My Computer</p>";
+						if(swfobject.hasFlashPlayerVersion("10.3")){
+							document.getElementById("globalmeetflash").innerHTML = "<img src='validtick.png'>";
+						}
+						}
+					}
+					document.getElementById("toolbarflash").innerHTML = "Toolbar not available for Mac OS";
+					
+				}
+				var playerVersion = swfobject.getFlashPlayerVersion();
+				var majorVersion = playerVersion.major;
+				var minorVersion = playerVersion.minor;
+				var releaseVersion = playerVersion.release;
+				
+				var fullVersion = majorVersion +"."+minorVersion +"."+ releaseVersion;
+				flashVersion = fullVersion;
+				return fullVersion;
+			}
+			
+			function popuptest(){
+				if(browser.indexOf("Chrome") != -1){
+					var pop = window.open("about:blank", "new_window_123", "height=150,width=150");
+					setTimeout(function() {
+					if(!pop || pop.closed || pop.closed == "undefined" || pop == "undefined" || parseInt(pop.innerWidth) == 0 || pop.document.documentElement.clientWidth != 150 || pop.document.documentElement.clientHeight != 150){
+					pop && pop.close();
+					document.getElementById("popups").innerHTML = "<p class='error'>Pop-Ups not enabled</p>";
+					document.getElementById("popuperror").innerHTML = "Pop Ups Disabled: Please see <a target='_blank' href='https://support.google.com/chrome/answer/95472?hl=en'>Google</a> for more details";
+					popupstate = "Disabled";
+					//alert("Popups must be enabled.");//requires more work - eg link to solution
+					}else{
+					document.getElementById("popups").innerHTML = "<img src='validtick.png'>";
+					popupstate = "Enabled";
+					//alert("Popups is enabled."); //requires more work - eg link
+					pop && pop.close();
+					}}, 1000); 
+				}else{
+					var windowName = 'userConsole'; 
+					var popUp = window.open('', windowName, 'width=100, height=70, left=24, top=24, scrollbars, resizable');
+					if (popUp == null || typeof(popUp)=='undefined') { 	
+						document.getElementById("popups").innerHTML = "<p class='error'>Pop-Ups not enabled</p>" ;
+						document.getElementById("popuperror").innerHTML = "Pop Ups Disabled: Please see <a target='_blank' href='https://support.mozilla.org/en-US/kb/pop-blocker-settings-exceptions-troubleshooting'>Firefox</a> <a href='http://support.apple.com/kb/dl1531'>Safari</a> <a href='http://windows.microsoft.com/en-IE/internet-explorer/download-ie'>Internet Explorer</a> for more details";
+						popupstate = "Disabled";
+						//alert('Please disable your pop-up blocker and click the "Open" link again.'); 
+					}else{ 	
+						document.getElementById("popups").innerHTML = "<img src='validtick.png'>";
+						popupstate = "Enabled";
+						popUp.close();
+					} 
+				}
+				return popupstate;
+			}
+			
+			function dotnettest(){
+				if(browser.indexOf("MSIE") != -1){
+					//var dotNetversionsPresent = new Array();
+					var version = "";
+					var hasRequiredVersion = false;
+					var versionsEarlier = navigator.userAgent.match(/\.NET CLR [0-9.]+/g);//versions up to and including .net 3.5 (uses different useragent after this version)
+					var versionsAfter = navigator.userAgent.match(/\.NET[A-Z0-9.]+/g);//versions after .net 3.5
+					
+					if (versionsEarlier == null && versionsAfter == null){
+						document.getElementById("dotnet").innerHTML =  "Microsoft .NET is not installed on your computer";
+						return false;
+					}
+					else// user has some version of .net installed
+					{
+						//has a version of .net installed
+						if(versionsEarlier != null){//user .net version is earlier than 3.5
+							
+							for(i =0; i<versionsEarlier.length; i++){
+								if(version != ""){
+									version += ","+ versionsEarlier[i];
+								}else{
+									version += versionsEarlier[i];
+								}
+								///alert("has " + versionsEarlier[i]);
+							}
+							dotnetfound:
+							for(var i = 0; i <versionsEarlier.length; i++){//have to loop for IE
+								for(var j = 0; j < compatibleDotNetVersions.length;j++){
+									if(versionsEarlier[i].indexOf(compatibleDotNetVersions[j])){
+										hasRequiredVersion = true;
+										break dotnetfound;
+									}	
+								}
+							} 
+							}
+						
+						if(versionsAfter.length > 0){//versions after 3.5 (needed for future, not currently required)
+							//requiredVersion = true;
+							for(i = 0; i<versionsAfter.length; i++){
+								for(var j = 0; j < compatibleDotNetVersions.length;j++){
+									if(versionsAfter[i].indexOf(compatibleDotNetVersions[j])){
+										hasRequiredVersion = true;
+									}	
+								}
+							}/*else{ // is not IE - no plan for this yet
+								return "N/A";
+							}  */
+						}
+						if(hasRequiredVersion){
+							document.getElementById("dotnet").innerHTML = "<img src='validtick.png'><br>Has required .Net Version";
+						}else{
+							document.getElementById("dotnet").innerHTML = "Does not have required .Net Version";
+							document.getElementById("dotneterror").innerHTML = "Does not have required .Net Version, you can find them here at <a target='_blank' href='http://msdn.microsoft.com/en-us/vstudio/aa496123.aspx'>Microsoft</a>";
+						}
+					}
+					dotNetversionsPresent = versionsEarlier;
+					console.log("version earlier are " + dotNetversionsPresent);
+					for(var i = 0; i < versionsAfter.length;i++){
+						dotNetversionsPresent.push(versionsAfter[i]);
+					}
+					//return versionsPresent;
+				}else{
+					//dotNetversionsPresent[0] = "Test not run in Internet Explorer";
+				}
+			}
+						
+			function downloadingtest(){  
+				var input;
+				var host;
+				var rowOfData;
+				var d = new Date();
+				var n = d.getTime();
+				
+				
+				//initialDownloadTest(speedThresholdNo, downloadFileName, downloadFileSize);
+				
+				
+				
+				//var speeds = new Array();
+				
+				
+				//function initialDownloadTest(speedThresholdNo, downloadFileName, downloadFileSize){
+					
+					var imageAddr = "http://www.alecdeane.com/dlultest/image100k/100-1.jpg?time=" + n;
+					var startTime, endTime;
+					var downloadSize = 100322;
+					var initialDownload = new Image();
+					
+					
+					initialDownload.onload = function () {
+						endTime = (new Date()).getTime();
+						rowOfData = showResults(imageAddr, endTime, startTime, downloadSize);
+						document.getElementById("bandwidth").innerHTML += rowOfData;
+						speedEstimate = parseInt(rowOfData);
+						maindl(speedEstimate, speedThresholdNo, downloadFileName, downloadFileSize);
+					}
+					startTime = (new Date()).getTime();
+					initialDownload.src = imageAddr;
+					
+				//}
+				
+				function showResults(imageAddr, endTime, startTime, downloadSize) {
+					var duration = (endTime - startTime) / 1000; //Math.round()
+					console.log("Duration of download is " + duration + " seconds");
+					//input = "<tr><td>" + duration +" </td>";
+					var bitsLoaded = downloadSize * 8;
+					//input += "<td>ping</td><td>"+ imageAddr+"</td>";
+					//input += "<td>" + downloadSize +"</td><td>200</td>";
+					var speedBps = (bitsLoaded / duration).toFixed(2);
+					var speedKbps = (speedBps / 1024).toFixed(2);
+					//var speedMbps = (speedKbps / 1024).toFixed(2);
+					//input += ( "<td>" + speedKbps + "</td>" );
+					return speedKbps;
+				}
+				
+				
+				function maindl(dlspeed,speedThresholdNo, downloadFileName, downloadFileSize){
+					
+					speedfound:
+					for(var i = 0; i < speedThresholdNo.length; i++){
+						if(dlspeed >= speedThresholdNo[i]){
+							imageAddr = "http://www.alecdeane.com/dlultest/image100k/"+ downloadFileName[i] +"?time=" + n;
+							downloadSize = downloadFileSize[i];
+						}else{
+							if(i == 0){//speed is slower than lowest benchmark
+								imageAddr = "http://www.alecdeane.com/dlultest/image100k/"+ downloadFileName[0] +"?time=" + n;
+								downloadSize = downloadFileSize[0];
+							}
+							break speedfound;
+						}
+					}
+					console.log("Selected download file is "+ imageAddr);
+					console.log("Download size of this file is " + downloadSize);
+					var mainDownload = new Image();
+					mainDownload.onload = function (){
+						// downloadSize = 5616998;
+						endTime = (new Date()).getTime();
+						rowOfData = showResults(imageAddr, endTime, startTime, downloadSize);
+						document.getElementById("bandwidth").innerHTML += rowOfData;
+						
+						bandwidthdlspeed = rowOfData;
+						displaytable(bandwidthdlspeed);
+						
+						return bandwidthdlspeed;
+					}
+					startTime = (new Date()).getTime();
+					mainDownload.src = imageAddr;
+					
+				}
+			
+				// Creates and populates the bandwidth table based on the speed attained from the bandwidth test
+				function displaytable(speed){
+					var rowOfData;
+					
+					if(speed > 450){ //dl speed is < 450 kilobits per second (450 = recommended)
+						document.getElementById("globalmeetbandwidth").innerHTML = "<img src='validtick.png'><br>You meet recommended specifications.";
+					}else if(speed > 250){ //250 < dl speed <= 450 (250 = minimum)
+						document.getElementById("globalmeetbandwidth").innerHTML = "<img src='validtickamber.png'><br>You meet minimum specifications for download speed";					
+					}else{//dl speed is too low
+						document.getElementById("globalmeetbandwidth").innerHTML = "Your speed is " + speed + "kbps which is too low, you require 250kbps minimum";
+					}
+					
+					
+					// Use this data from fillDisplayTableArraysto fill the table and show results
+					for(var i =0; i <speedThresholds.length; i++){
+						rowOfData =  "<tr>";
+						rowOfData += "<td>" + speedThresholdName[i] + "</td><td>" + sampleScenario[i] + "</td><td>" + (speedThresholds[i]/8)+ "kb/s per person</td>";
+						
+						if(speed > speedThresholds[i]){
+							rowOfData +="<td><img src='validtick.png'></td>";
+						}else{
+							rowOfData +="<td>Not Pass</td>";
+						}
+						rowOfData += "</tr>";
+						document.getElementById("bandwidth1").innerHTML += rowOfData;
+					}
+					uploadtest();
+				}
+				
+			}
+			
+			function uploadtest(){//this will work by creating a post request with a long string param and testing starttime vs success
+				
+				function checkUploadSpeed( iterations){//, update ) {
+					var average = 0,
+						index = 0,
+						timer = window.setInterval( check, 5000 ); //check every 5 seconds
+					check();
+					
+					function check() {
+						var xhr = new XMLHttpRequest(),
+							url = 'https://www.alecdeane.com/dlultest/uploadreceiver.php?cache=' + Math.floor( Math.random() * 10000 ), //prevent url cache
+							data = getRandomString( 1 ), //1 meg POST size handled by all servers
+							startTime,
+							speed = 0;
+						xhr.onreadystatechange = function ( event ) {
+							if( xhr.readyState == 4 ) {
+								speed = Math.round( 1024 / ( ( new Date() - startTime ) / 1000 ) );
+								average == 0 
+									? average = speed 
+									: average = Math.round( ( average + speed ) / 2 );
+								
+								//update( speed, average );
+								index++;
+								if( index == iterations ) {
+									window.clearInterval( timer );
+									bandwidthulspeed = average;
+								};
+								//end of bandwidth callbacks can now post to server
+								bandwidthTestComplete = true;
+							};
+						};
+						xhr.open( 'POST', url, true );
+						startTime = new Date();
+						xhr.send( data );
+					};
+					
+					function getRandomString( sizeInMb ) {
+						var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()_+`-=[]\{}|;':,./<>?", //random data prevents gzip effect
+							iterations = sizeInMb * 1024 * 1024, //get byte count
+							result = '';
+						for( var index = 0; index < iterations; index++ ) {
+							result += chars.charAt( Math.floor( Math.random() * chars.length ) );
+						};     
+						return result;
+					};
+				};
+
+				checkUploadSpeed( 1 );/*, function ( speed, average ) {
+					document.getElementById( 'speed' ).textContent = 'speed: ' + speed + 'kbs';
+					document.getElementById( 'average' ).textContent = 'average: ' + average + 'kbs';
+				} ); */
+
+				domaintest();
+			}
+			
+			 function domaintest(){
+				    var ImageObject = new Image();
+
+					function onLoadHandler() {
+						 
+						 document.getElementById("upload").innerHTML="<img src='validtick.png'>";
+					  }
+					  function onErrorHandler() {
+						
+						 document.getElementById("upload").innerHTML="<p class='error'>Domains not available</p>";
+					  }
+					
+					ImageObject.onload = onLoadHandler;
+					ImageObject.onerror = onErrorHandler;
+					
+					ImageObject.src = "https://community.globalmeet.com/themes/globalmeet-community/images/gm-header-logo.png"; 
+					
+				
+				domaintesttool();
+			}	
+			
+			function domaintesttool(){
+				    var ImageObject2 = new Image();
+
+					function onLoadHandler() {
+						 
+						 document.getElementById("uploadTool").innerHTML="<img src='validtick.png'>";
+					  }
+					  function onErrorHandler() {
+						
+						 document.getElementById("uploadTool").innerHTML="<p class='error'>Domains not available</p>";
+					  }
+					
+					ImageObject2.onload = onLoadHandler;
+					ImageObject2.onerror = onErrorHandler;
+					
+					ImageObject2.src = "https://www.mymeetingroom.com/images/mmrheader.jpg"; 
+					
+				
+				domaintestdesk();
+			}	
+			
+			function domaintestdesk(){
+				    var ImageObject3 = new Image();
+
+					function onLoadHandler() {
+						 
+						 document.getElementById("uploadDesk").innerHTML="<img src='validtick.png'>";
+					  }
+					  function onErrorHandler() {
+						
+						 document.getElementById("uploadDesk").innerHTML="<p class='error'>Domains not available</p>";
+					  }
+					
+					ImageObject3.onload = onLoadHandler;
+					ImageObject3.onerror = onErrorHandler;
+					
+					ImageObject3.src = "http://www.pgi.com/sites/all/themes/pgi/logo.png"; 
+			}
+			
+			
+			function post_to_server(){
+				if(!bandwidthTestComplete){//will be true if the callbacks for the bandwidth tests are not complete
+					console.log("Bandwidth Tests: Not complete yet.");
+					window.setTimeout("post_to_server();", 2000);
+					return;
+				}else{//bandwidth tests are complete and post_to_server can be run
+					console.log("Bandwidth Tests: Complete");
+					var xmlhttp = new XMLHttpRequest();
+					xmlhttp.onreadystatechange = function(){
+						if(xmlhttp.readyState == 4 && xmlhttp.status == 200){
+							console.log(xmlhttp.responseText);
+							$("#loading").fadeToggle("fast", function () {
+							});
+							$("#buttontoggle").fadeToggle("fast", function () {
+							});
+						}
+					}
+					
+					xmlhttp.open("POST", "post.php", true);
+					xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+					var dataToSend = "browser=" + browser; 
+					dataToSend += "&operating_system=" + os; 
+					dataToSend += "&flash_version=" + flashVersion;
+					dataToSend += "&pop_ups_enabled="+ popupstate; 
+					dataToSend += "&dlBandwidth_kbits=" + parseInt(bandwidthdlspeed);
+					dataToSend += "&ulBandwidth_kbits=" + parseInt(bandwidthulspeed);//bandwidthulspeed ;
+					dataToSend += "&cookies_enabled=" + cookiesEnabled;
+					//dataToSend += "&ports_domains=" + portDomains;//example name
+					
+					console.log(dotNetversionsPresent);
+					var stringOfDotNetVersionsPresent;
+					if(browser.indexOf("MSIE") != -1){
+						for(var i= 0; i < dotNetversionsPresent.length; i++){
+							if(i != 0){
+								stringOfDotNetVersionsPresent += "," + dotNetversionsPresent[i];
+							}else{
+								stringOfDotNetVersionsPresent = dotNetversionsPresent[i]
+							}
+						}
+					}else{
+						stringOfDotNetVersionsPresent = "Test not run in Internet Explorer";
+					}
+					console.log(stringOfDotNetVersionsPresent);
+					dataToSend += "&dotnet_version=" + stringOfDotNetVersionsPresent;
+					xmlhttp.send(dataToSend);
+				}
+			}
+			
+	</script>
+</head>
+<body onload="initialtests()">
+		<div id="wrapper">
+			<div style="display:none;" id="errordiv" >
+				<p>Advanced Error Help</p>
+				<p id="browsererror"></p>
+				<p id="oserror"></p>
+				<p id="cookieerror"></p>
+				<p id="popuperror"></p>
+				<p id="flasherror"></p>
+				<p id="dotneterror"></p>
+			</div>
+			<div style="display:none;" id="loading" >
+				<p id="loadinggif"><img alt="Loading" src="ajax-loader.gif"/></p>
+				<p class="notrequired">Please wait...</p>
+			</div>
+			<div id="page1">
+				<div id="column-right">
+					<div style="display:none;" id="dlspeed">
+						<table id="bandwidth">
+							<caption>Bandwidth Test</caption>
+							<tr>
+								<th>Speed(Kbps)</th>
+							</tr>
+						</table>
+					</div>
+					<div style="display:none;" id="ul">
+						<p id="speed"></p>
+						<p id="average"></p>
+					</div> 
+					<div>
+						<button style="display:none;" type="button" id="buttontoggle" onclick="toggleVisibility()">Error Details</button>
+					</div>
+					<script>
+						$("#buttontoggle").click(function () {
+						  $("#errordiv").fadeToggle("fast", function () {
+						  });
+						});
+					</script>
+					<table> 
+						<caption>Minimum System Requirements for GlobalMeet</caption>
+						<tr>
+							<th>System Component</th>						
+							<th>GlobalMeet</th>
+							<th>GlobalMeet Toolbar</th>
+							<th>GlobalMeet for Desktop</th>
+						</tr>
+						<tr>
+							<th>Operating System</th>
+							<td id="validGlobalMeetOS"></td>
+							<td id="validToolbarOS"></td>
+							<td id="validDesktopOS"></td>
+						</tr>
+						<tr>
+							<th>Browser</th>
+							<td id="browser"></td>
+							<td class="notrequired">Not required for Toolbar</td>
+							<td class="notrequired">Not required for Desktop</td>
+						</tr>
+						<tr>
+							<th>Pop-Ups</th>
+							<td id="popups"></td>
+							<td class="notrequired">Not required for Toolbar</td>
+							<td class="notrequired">Not required for Desktop</td>
+						</tr>
+						<tr>
+							<th>Flash Version</th>
+							<td id="globalmeetflash"></td>
+							<td id="toolbarflash"></td>
+							<td class="notrequired">Not required for Desktop</td>
+						</tr>
+						<tr>
+							<th>Bandwidth</th>
+							<td colspan="3" id="globalmeetbandwidth"></td>
+						</tr>
+						<tr>
+							<th>Domains/Ports</th>
+							<td id="upload"></td>
+							<td id="uploadTool"></td>
+							<td id="uploadDesk"></td>
+						</tr>
+						<tr>
+							<th>Other</th>
+							<td id="other"></td>
+							<td id="dotnet"></td>
+							<td id="cookies"></td>
+						</tr>
+					</table>
+					<div class="heading" id="bandwidthadvancedheader">Reveal Advanced Results(Click to expand)</div>
+					<div class="content">
+						<table id="bandwidth1">
+							<tr id="content">
+								<th>Sharing</th>
+								<th>Sample Scenario</th>
+								<th>Bandwidth Estimate</th>
+								<th>Your Connection</th>
+							</tr>
+							<script type="text/javascript">
+								jQuery(document).ready(function() {
+								  jQuery(".content").hide();
+								  //toggle the componenet with class msg_body
+								  jQuery(".heading").click(function()
+								  {
+									jQuery(this).next(".content").slideToggle(500);
+									window.setTimeout(function(){window.scrollTo(100,820)},510);
+									
+								  });
+								});
+							</script>
+								
+						</table>
+					</div>
+				</div >
+				
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,37 @@
+					
+					
+					<script type="text/javascript">
+					var browser = "Chrome",
+						os = "Windows 7",
+						flashVersion = "11.8",
+						popupstate = "Disabled",
+						bandwidthdlspeed = 1700,
+						bandwidthulspeed = 180,
+						cookies = "Enabled",
+						dotNetVersion = ".NET CLR 3.5";
+						
+					
+					
+					
+					
+					var xmlhttp = new XMLHttpRequest();
+					xmlhttp.onreadystatechange = function(){
+						if(xmlhttp.readyState == 4 && xmlhttp.status == 200){
+							console.log(xmlhttp.responseText);
+						}
+					}
+					
+					xmlhttp.open("POST", "post.php", true);
+					xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+					var dataToSend = "browser=" + browser; 
+					dataToSend += "&operating_system=" + os; 
+					dataToSend += "&flash_version=" + flashVersion;
+					dataToSend += "&pop_ups_enabled="+ popupstate; 
+					dataToSend += "&dlBandwidth_kbits=" + bandwidthdlspeed;
+					dataToSend += "&ulBandwidth_kbits=" + 180;//bandwidthulspeed ;
+					dataToSend += "&cookies_enabled=" + cookies;
+					dataToSend += "&dotnet_version=" + dotNetVersion;
+					console.log(dataToSend);
+					xmlhttp.send(dataToSend);
+					
+					</script>
